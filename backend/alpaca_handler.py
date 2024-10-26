@@ -1,5 +1,6 @@
 from alpaca.data import StockHistoricalDataClient
 from alpaca.data import StockBarsRequest, TimeFrame
+from alpaca.data.requests import StockLatestQuoteRequest
 from datetime import datetime
 import alpaca_trade_api as tradeapi
 from dotenv import load_dotenv
@@ -49,3 +50,14 @@ def get_assets():
     tradable_assets = [asset for asset in assets if asset.tradable]
     print("Scrape successful")
     return tradable_assets
+
+def get_stock_data(symbol):
+    client = StockHistoricalDataClient(api_key, secret_key)
+    request_params = StockLatestQuoteRequest(symbol_or_symbols=symbol)
+    quote = client.get_stock_latest_quote(request_params)[symbol]
+    print(quote.timestamp)
+    return {
+        "symbol": symbol,
+        "price": quote.ask_price,
+        "timestamp": quote.timestamp.isoformat()
+    }

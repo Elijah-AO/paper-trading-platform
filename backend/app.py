@@ -3,10 +3,10 @@ from flask_pymongo import PyMongo
 from flask_cors import CORS
 from flask_bcrypt import Bcrypt
 from dotenv import load_dotenv
-from datetime import datetime
+from datetime import datetime, timedelta
 import os, jwt
 from bson.objectid import ObjectId
-from alpaca_handler import get_assets
+from alpaca_handler import get_assets, get_stock_data
 
 load_dotenv()
 
@@ -18,6 +18,9 @@ mongo_uri = f"mongodb+srv://{os.getenv('MONGO_USERNAME')}:{os.getenv('MONGO_PASS
 app.config["MONGO_URI"] = mongo_uri
 app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
 mongo = PyMongo(app)
+
+def generic_error_response(e):
+    return jsonify({'error': f"An error occurred: {str(e)}"}), 500
 
 def create_token(user_id):
     payload = {
@@ -55,7 +58,7 @@ def signup():
 
         return jsonify({'message': 'User created successfully!', 'id': str(result.inserted_id)}), 201
     except Exception as e:
-        return jsonify({'error': f"An error occurred: {str(e)}"}), 500
+        return generic_error_response(e)
 
 @app.route('/api/signin', methods=['POST'])
 def signin():
@@ -75,7 +78,7 @@ def signin():
         else:
             return jsonify({'error': 'Invalid credentials'}), 401
     except Exception as e:
-        return jsonify({'error': f"An error occurred: {str(e)}"}), 500
+        return generic_error_response(e)
 
 @app.route('/api/users', methods=['GET'])
 def get_users():
@@ -84,7 +87,7 @@ def get_users():
         user_list = [{"id": str(user["_id"]), "email": user.get("email"), "balance": user.get("balance", 0.0), "role": user.get("role", "USER")} for user in users]
         return jsonify(user_list), 200
     except Exception as e:
-        return jsonify({'error': f"An error occurred: {str(e)}"}), 500
+        return generic_error_response(e)
 
 @app.route('/api/users/<user_id>', methods=['GET'])
 def get_user_by_id(user_id):
@@ -103,7 +106,61 @@ def get_user_by_id(user_id):
         return jsonify(user_data), 200
 
     except Exception as e:
-        return jsonify({'error': f"An error occurred: {str(e)}"}), 500
+        return generic_error_response(e)
+    
+@app.route('/api/users/<user_id>/withdraw', methods=['POST'])
+def withdraw(user_id):
+    data = request.get_json()
+    amount = data.get('amount', 0.0)
+
+    try:
+        user = mongo.db.users.find_one({"_id": ObjectId(user_id)})
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
+        current_balance = user.get("balance", 0.0)
+        if current_balance < amount:
+            return jsonify({'error': 'Insufficient funds'}), 400
+
+        updated_balance = current_balance - amount
+        mongo.db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"balance": updated_balance}})
+        transaction_data = {
+            "user_id": user_id,
+            "type": "WITHDRAWAL",
+            "amount": amount,
+            "date_created": datetime.now()
+        }
+        mongo.db.transactions.insert_one(transaction_data)
+        
+        return jsonify({'message': 'Withdrawal successful!'}), 200
+    except Exception as e:
+        return generic_error_response(e)
+
+@app.route('/api/users/<user_id>/deposit', methods=['POST'])
+def deposit(user_id):
+    data = request.get_json()
+    amount = data.get('amount', 0.0)
+
+    try:
+        user = mongo.db.users.find_one({"_id": ObjectId(user_id)})
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
+        current_balance = user.get("balance", 0.0)
+        updated_balance = current_balance + amount
+        mongo.db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"balance": updated_balance}})
+        
+        transaction_data = {
+            "user_id": user_id,
+            "type": "DEPOSIT",
+            "amount": amount,
+            "date_created": datetime.now()
+        }
+        mongo.db.transactions.insert_one(transaction_data)
+        
+        return jsonify({'message': 'Deposit successful!'}), 200
+    except Exception as e:
+        return generic_error_response(e)
 
 @app.route('/api/stocks', methods=['GET'])
 def get_stocks():
@@ -112,8 +169,45 @@ def get_stocks():
         stock_list = [{"id": str(stock["_id"]), "stock_name": stock.get("stock_name"), "stock_symbol": stock.get("stock_symbol"), "stock_price": stock.get("stock_price", 0.0)} for stock in stocks]
         return jsonify(stock_list), 200
     except Exception as e:
-        return jsonify({'error': f"An error occurred: {str(e)}"}), 500
+        return generic_error_response(e)
 
+
+@app.route('/api/stocks/<stock_id>', methods=['GET'])
+def get_stock_by_id(stock_id):
+    try:
+        stock = mongo.db.stocks.find_one({"_id": ObjectId(stock_id)})
+
+        if not stock:
+            return jsonify({'error': 'Stock not found'}), 404
+
+        last_updated = stock.get("date_updated")
+        was_updated = False
+        
+        if not last_updated or (datetime.now() - last_updated) > timedelta(minutes=1):
+            stock_data = get_stock_data(stock['symbol'])
+            updated_stock = {
+                "price": stock_data['price'],  
+                "date_updated": datetime.now(),
+            }
+
+            mongo.db.stocks.update_one({"_id": ObjectId(stock_id)}, {"$set": updated_stock})
+            stock.update(updated_stock)
+            was_updated = True
+
+        stock_data_response = {
+            "id": str(stock["_id"]),
+            "name": stock.get("name"),
+            "symbol": stock.get("symbol"),
+            "price": stock.get("price", 0.0),
+            "date_updated": stock.get("date_updated"),
+            "stock_data": stock.get("stock_data"),
+            "was_updated": was_updated
+        }
+        
+        return jsonify(stock_data_response), 200
+
+    except Exception as e:
+        return generic_error_response(e)
 
 def populate_stocks():
     stocks = get_assets()
