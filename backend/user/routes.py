@@ -1,3 +1,4 @@
+from decorators import jwt_required, admin_required
 from flask import Blueprint, request, jsonify, current_app
 from extensions import mongo, bcrypt
 from utils import generic_error_response, get_stock_data, create_token 
@@ -8,6 +9,7 @@ from bson.objectid import ObjectId
 user_bp = Blueprint('user', __name__)
 
 @user_bp.route('/', methods=['GET'])
+@admin_required
 def get_users():
     try:
         users = mongo.db.users.find()
@@ -28,7 +30,7 @@ def get_user_by_id(user_id):
             "id": str(user["_id"]),
             "email": user.get("email"),
             "balance": user.get("balance", 0.0),
-            "role": user.get("role", "USER"),
+            "role": user.get("role", "user"),
             "transactions": [str(txn) for txn in user.get("transactions", [])],
             "trades": [str(trade) for trade in user.get("trades", [])],
             "stocks": user.get("stocks", {})

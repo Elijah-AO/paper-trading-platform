@@ -71,9 +71,10 @@ def get_stock_data(symbol):
         "timestamp": quote.timestamp.isoformat()
     }
 
-def create_token(user_id):
+def create_token(user_id, role):
     payload = {
         "user_id": user_id,
+        "role": role,
         "exp": datetime.now() + timedelta(hours=1)
     }
     token = jwt.encode(payload, current_app.config["JWT_SECRET_KEY"], algorithm="HS256")

@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from extensions import mongo, bcrypt
-from utils import generic_error_response
+from utils import generic_error_response, create_token
 from datetime import datetime
 import jwt, os
 
@@ -12,6 +12,7 @@ def signup():
     email = data.get('email')
     password = data.get('password')
     role = data.get('role')
+    role = role if role else 'USER'
     
     if not email or not password:
         return jsonify({'error': 'Email and password are required'}), 400
@@ -48,7 +49,7 @@ def signin():
     try:
         user = mongo.db.users.find_one({"email": email})
         if user and bcrypt.check_password_hash(user["hashed_password"], password):
-            token = create_token(str(user["_id"]))
+            token = create_token(str(user["_id"]), user["role"])
             
             return jsonify({
                 'message': 'Logged in successfully!',
