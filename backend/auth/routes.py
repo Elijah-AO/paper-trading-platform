@@ -12,7 +12,7 @@ def signup():
     email = data.get('email')
     password = data.get('password')
     role = data.get('role')
-    role = role if role else 'USER'
+    role = role if role else 'user'
     
     if not email or not password:
         return jsonify({'error': 'Email and password are required'}), 400

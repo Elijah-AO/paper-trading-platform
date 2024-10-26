@@ -49,3 +49,46 @@ def delete_user(user_id):
     mongo.db.users.delete_one({"_id": ObjectId(user_id)})
     return jsonify({'message': 'User deleted successfully!'}), 200
 
+@user_bp.route('/dashboard', methods=['GET'])
+def get_user_dashboard():
+    token = request.headers.get('Authorization').split(" ")[1]
+
+    try:
+        payload = jwt.decode(token, current_app.config["JWT_SECRET_KEY"], algorithms=["HS256"])
+        user_id = payload['user_id']
+
+        user = mongo.db.users.find_one({"_id": ObjectId(user_id)})
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
+        user_data = {
+            'balance': user.get('balance', 0.0),
+            'stocks': []
+        }
+
+        user_stocks = user.get('stocks', {})
+        for _id, quantity in user_stocks.items():
+            stock = mongo.db.stocks.find_one({"_id": ObjectId(_id)})
+
+            if stock:
+                user_data['stocks'].append({
+                    "_id": _id,
+                    "name": stock.get("name", "Unknown"),
+                    "quantity": quantity
+                })
+            else:
+                user_data['stocks'].append({
+                    "_id": _id,
+                    "name": "Unknown",
+                    "quantity": quantity
+                })
+
+        return jsonify(user_data), 200
+
+    except jwt.ExpiredSignatureError:
+        return jsonify({'error': 'Token expired'}), 401
+    except jwt.InvalidTokenError:
+        return jsonify({'error': 'Invalid token'}), 401
+    except KeyError:
+        return jsonify({'error': 'Invalid token structure: user_id missing'}), 400
+
