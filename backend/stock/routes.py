@@ -78,8 +78,6 @@ def get_stock_by_id(stock_id):
         }
         
         return jsonify(stock_data_response), 200
-    
-
 
     except Exception as e:
         return generic_error_response(e)

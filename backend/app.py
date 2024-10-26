@@ -8,6 +8,7 @@ from alpaca_handler import get_assets, get_stock_data
 from user.routes import user_bp
 from auth.routes import auth_bp
 from stock.routes import stock_bp
+from transaction.routes import transaction_bp
 from extensions import mongo, bcrypt
 
 load_dotenv()
@@ -25,6 +26,7 @@ bcrypt.init_app(app)
 
 app.register_blueprint(user_bp, url_prefix='/api/users')
 app.register_blueprint(stock_bp, url_prefix='/api/stocks')
+app.register_blueprint(transaction_bp, url_prefix='/api/transactions')
 app.register_blueprint(auth_bp, url_prefix='/api/auth')
 
 if __name__ == '__main__':
