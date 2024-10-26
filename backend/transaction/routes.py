@@ -6,6 +6,22 @@ import jwt
 from bson.objectid import ObjectId
 
 transaction_bp = Blueprint('transaction', __name__)
+
+@transaction_bp.route('/')
+def get_transactions():
+    try:
+        transactions =[]
+        for transaction in mongo.db.transactions.find():
+            transactions.append({
+                "id": str(transaction["_id"]),
+                "user_id": transaction.get("user_id"),
+                "type": transaction.get("type"),
+                "amount": transaction.get("amount", 0.0),
+                "date_created": transaction.get("date_created")
+            })
+        return jsonify(transactions), 200
+    except Exception as e:
+        return generic_error_response(e)
    
 @transaction_bp.route('/withdraw', methods=['POST'])
 def withdraw():

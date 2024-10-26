@@ -1,8 +1,7 @@
 from flask import Blueprint, request, jsonify
 from extensions import mongo
 from bson.objectid import ObjectId
-from alpaca_handler import get_stock_data
-from utils import generic_error_response, get_assets
+from utils import generic_error_response, get_assets, get_stock_data
 from datetime import datetime, timedelta
 stock_bp = Blueprint('stock_bp', __name__)
 
