@@ -3,6 +3,7 @@
 .env
 __pycache__/
 env/
+backend/venv/
 # Logs
 logs
 *.log
