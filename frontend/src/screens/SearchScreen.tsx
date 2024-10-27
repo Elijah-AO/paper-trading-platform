@@ -86,6 +86,9 @@ const SearchScreen = () => {
         <Button variant="ghost" onPress={navigateToSearch} className="flex-1 items-center py-4">
           <Text className="text-blue-500 text-lg font-semibold">Search</Text>
         </Button>
+        <Button variant="ghost" onPress={() => navigation.navigate('Transaction')} className="flex-1 items-center py-4">
+          <Text className="text-blue-500 text-lg font-semibold">Transaction</Text>
+        </Button>
       </HStack>
         </View>
         </VStack>

@@ -2,19 +2,21 @@ import React, { useEffect, useState } from 'react';
 import { View, Text } from 'react-native';
 import { ScrollView, VStack, HStack, Button } from 'native-base';
 import TradingCard from '../components/TradingCard';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation, NavigationProp, useFocusEffect } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/types';
-import { NavigationProp } from '@react-navigation/native';
 
 type Stock = {
   _id: string;
   name: string;
   quantity: number;
+  latest_price?: number;
+  timestamp?: string;
 };
 
 export default function DashboardScreen() {
   const [balance, setBalance] = useState(0);
   const [stocks, setStocks] = useState<Stock[]>([]);
+  const [portfolioValue, setPortfolioValue] = useState(0);
   const [error, setError] = useState('');
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
 
@@ -33,7 +35,8 @@ export default function DashboardScreen() {
       if (response.ok) {
         const data = await response.json();
         setBalance(data.balance);
-        setStocks(data.stocks); // Assuming data.stocks is an array of Stock
+        setStocks(data.stocks); 
+        calculatePortfolioValue(data.stocks);
       } else {
         const errorData = await response.json();
         setError(errorData.error || 'Failed to fetch data');
@@ -43,11 +46,15 @@ export default function DashboardScreen() {
     }
   };
 
-  useEffect(() => {
-    // Add focus listener to refresh data each time screen is focused
-    const unsubscribe = navigation.addListener('focus', fetchDashboardData);
+  const calculatePortfolioValue = (stocks: Stock[]) => {
+    const totalValue = stocks.reduce((sum, stock) => {
+      return sum + (stock.latest_price || 0) * stock.quantity;
+    }, 0);
+    setPortfolioValue(totalValue);
+  };
 
-    // Cleanup the listener on component unmount
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', fetchDashboardData);
     return unsubscribe;
   }, [navigation]);
 
@@ -67,6 +74,7 @@ export default function DashboardScreen() {
         ) : (
           <>
             <Text style={{ fontSize: 24, fontWeight: 'bold' }}>Balance: ${balance.toFixed(2)}</Text>
+            <Text style={{ fontSize: 18, fontWeight: '600', marginTop: 8 }}>Portfolio Value: ${portfolioValue.toFixed(2)}</Text>
             <Text style={{ fontSize: 20, fontWeight: '600', marginTop: 16 }}>Stocks:</Text>
             <ScrollView contentContainerStyle={{ alignItems: 'center', paddingVertical: 10 }}>
               {stocks.length ? (
@@ -76,6 +84,8 @@ export default function DashboardScreen() {
                     stockName={stock.name}
                     stockId={stock._id}
                     quantity={stock.quantity}
+                    latestPrice={stock.latest_price}
+                    timestamp={stock.timestamp}
                     onPress={() => handleCardPress(stock)}
                   />
                 ))
@@ -87,6 +97,7 @@ export default function DashboardScreen() {
         )}
       </View>
 
+      {/* Footer Navigation */}
       <HStack className="border-t border-gray-300 bg-gray-100" style={{ width: '100%' }}>
         <Button variant="ghost" onPress={() => navigation.navigate('Dashboard')} className="flex-1 items-center py-4">
           <Text className="text-blue-500 text-lg font-semibold">Home</Text>

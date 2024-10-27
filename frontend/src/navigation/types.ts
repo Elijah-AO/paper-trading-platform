@@ -6,7 +6,6 @@ export type RootStackParamList = {
     Dashboard: undefined;
     Search: undefined;
     Stock: { stockId: string; symbol: string; name: string };
-    Trade: { userId: string; stockId: string};
     Transaction: undefined;
   };
   

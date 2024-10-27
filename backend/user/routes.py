@@ -1,7 +1,7 @@
 from decorators import jwt_required, admin_required
 from flask import Blueprint, request, jsonify, current_app
 from extensions import mongo, bcrypt
-from utils import generic_error_response, get_stock_data, create_token 
+from utils import generic_error_response, get_stock_data, create_token, get_stocks_data 
 from datetime import datetime, timedelta
 import jwt
 from bson.objectid import ObjectId
@@ -67,21 +67,35 @@ def get_user_dashboard():
         }
 
         user_stocks = user.get('stocks', {})
+        
+        # Get list of stock symbols
+        stock_symbols = []
+        stock_data_map = {}
+
         for _id, quantity in user_stocks.items():
             stock = mongo.db.stocks.find_one({"_id": ObjectId(_id)})
-
             if stock:
-                user_data['stocks'].append({
+                stock_symbols.append(stock['symbol'])
+                stock_data_map[stock['symbol']] = {
                     "_id": _id,
                     "name": stock.get("name", "Unknown"),
                     "quantity": quantity
-                })
-            else:
-                user_data['stocks'].append({
-                    "_id": _id,
-                    "name": "Unknown",
-                    "quantity": quantity
-                })
+                }
+
+        # Fetch the latest stock data for these symbols
+        if stock_symbols:
+            latest_prices = get_stocks_data(stock_symbols)
+
+            for price_data in latest_prices:
+                symbol = price_data['symbol']
+                if symbol in stock_data_map:
+                    stock_data_map[symbol].update({
+                        "latest_price": price_data['price'],
+                        "timestamp": price_data['timestamp']
+                    })
+
+        # Append all stock data to user_data['stocks']
+        user_data['stocks'] = list(stock_data_map.values())
 
         return jsonify(user_data), 200
 
@@ -91,4 +105,3 @@ def get_user_dashboard():
         return jsonify({'error': 'Invalid token'}), 401
     except KeyError:
         return jsonify({'error': 'Invalid token structure: user_id missing'}), 400
-

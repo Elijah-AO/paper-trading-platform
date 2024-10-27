@@ -1,37 +1,23 @@
-// src/components/TradingCard.tsx
 import React from 'react';
-import { Box, Text, Pressable, VStack } from 'native-base';
+import { View, Text, TouchableOpacity } from 'react-native';
 
 type TradingCardProps = {
   stockName: string;
   stockId: string;
   quantity: number;
+  latestPrice?: number;
+  timestamp?: string;
   onPress: () => void;
 };
 
-const TradingCard: React.FC<TradingCardProps> = ({ stockName, stockId, quantity, onPress }) => {
+const TradingCard = ({ stockName, stockId, quantity, latestPrice, timestamp, onPress }: TradingCardProps) => {
   return (
-    <Pressable onPress={onPress}>
-      {({ isPressed }) => (
-        <Box
-          bg={isPressed ? "coolGray.200" : "white"}
-          p="4"
-          rounded="md"
-          shadow={2}
-          borderWidth="1"
-          borderColor="coolGray.300"
-          mb="2"
-          width="90%"
-          maxW="290px"
-        >
-          <VStack space={2}>
-            <Text fontSize="lg" fontWeight="bold">{stockName}</Text>
-            <Text fontSize="sm" color="gray.500">ID: {stockId}</Text>
-            <Text fontSize="md">Quantity: {quantity}</Text>
-          </VStack>
-        </Box>
-      )}
-    </Pressable>
+    <TouchableOpacity onPress={onPress} style={{ margin: 10, padding: 15, borderWidth: 1, borderRadius: 8 }}>
+      <Text style={{ fontSize: 18, fontWeight: 'bold' }}>{stockName}</Text>
+      <Text>Quantity: {quantity}</Text>
+      {latestPrice !== undefined && <Text>Latest Price: ${latestPrice.toFixed(2)}</Text>}
+      {timestamp && <Text>Last Updated: {new Date(timestamp).toLocaleString()}</Text>}
+    </TouchableOpacity>
   );
 };
 

@@ -70,7 +70,16 @@ def get_stock_data(symbol):
         "price": quote.ask_price,
         "timestamp": quote.timestamp.isoformat()
     }
-
+    
+def get_stocks_data(symbols):
+    client = StockHistoricalDataClient(api_key, secret_key)
+    request_params = StockLatestQuoteRequest(symbol_or_symbols=symbols)
+    quotes = client.get_stock_latest_quote(request_params)
+    return [{
+        "symbol": symbol,
+        "price": quote.ask_price,
+        "timestamp": quote.timestamp.isoformat()
+    } for symbol, quote in quotes.items()]
 
 def create_token(user_id, role):
     payload = {
