@@ -7,6 +7,9 @@ import SignUpScreen from '../screens/SignUpScreen';
 import DashboardScreen from '../screens/DashboardScreen';
 import SearchScreen from '../screens/SearchScreen';
 import StockScreen from '../screens/StockScreen';
+import TradeScreen from '../screens/TradeScreen';
+import TransactionScreen from '../screens/TransactionScreen';
+
 import { RootStackParamList } from './types';
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -21,6 +24,8 @@ export default function AppNavigator() {
         <Stack.Screen name="Dashboard" component={DashboardScreen} options={{ title: 'Dashboard' }} />
         <Stack.Screen name="Search" component={SearchScreen} options={{ title: 'Search' }} />
         <Stack.Screen name="Stock" component={StockScreen} options={{ title: 'Stock' }} />
+        <Stack.Screen name="Trade" component={TradeScreen} options={{ title: 'Trade' }} />
+        <Stack.Screen name="Transaction" component={TransactionScreen} options={{ title: 'Transaction' }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

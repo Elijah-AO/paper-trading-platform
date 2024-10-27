@@ -71,6 +71,7 @@ def get_stock_data(symbol):
         "timestamp": quote.timestamp.isoformat()
     }
 
+
 def create_token(user_id, role):
     payload = {
         "user_id": user_id,

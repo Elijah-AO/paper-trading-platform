@@ -1,7 +1,8 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from extensions import mongo, bcrypt
 from utils import generic_error_response, create_token
 from datetime import datetime
+from bson import ObjectId
 import jwt, os
 
 auth_bp = Blueprint('auth', __name__)
@@ -57,5 +58,33 @@ def signin():
             }), 200
         else:
             return jsonify({'error': 'Invalid credentials'}), 401
+    except Exception as e:
+        return generic_error_response(e)
+
+@auth_bp.route('/me', methods=['GET'])
+def me():
+    token = request.headers.get('Authorization').split(" ")[1]
+    if not token:
+        return jsonify({'error': 'Token is required'}), 400
+
+    try:
+        payload = jwt.decode(token, current_app.config['JWT_SECRET_KEY'], algorithms=['HS256'])
+        user = mongo.db.users.find_one({"_id": ObjectId(payload["user_id"])})
+        user['_id'] = str(user['_id'])
+        print(type(user['_id']))
+        user_data = {
+            "id": str(user["_id"]),
+            "email": user.get("email"),
+            "balance": user.get("balance", 0.0),
+            "role": user.get("role", "user"),
+            "transactions": [str(txn) for txn in user.get("transactions", [])],
+            "trades": [str(trade) for trade in user.get("trades", [])],
+            "stocks": user.get("stocks", {})
+        }
+        return jsonify(user_data), 200
+    except jwt.ExpiredSignatureError:
+        return jsonify({'error': 'Token has expired'}), 401
+    except jwt.InvalidTokenError:
+        return jsonify({'error': 'Invalid token'}), 401
     except Exception as e:
         return generic_error_response(e)
