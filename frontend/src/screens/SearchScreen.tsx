@@ -1,18 +1,57 @@
+// src/screens/SearchScreen.tsx
 import React, { useState } from 'react';
-import { View, TextInput, FlatList, Text } from 'react-native';
+import { View, FlatList, Text, Pressable } from 'react-native';
 import { Box, Input, Icon } from 'native-base';
+import { ScrollView, VStack, HStack, Button, Center } from 'native-base';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation, NavigationProp } from '@react-navigation/native';
+import { RootStackParamList } from '../navigation/types';
 
 const SearchScreen = () => {
     const [searchQuery, setSearchQuery] = useState('');
-    const [results, setResults] = useState<string[]>([]);
+    const [results, setResults] = useState<{ id: string; symbol: string; name: string }[]>([]);
+    const navigation = useNavigation<NavigationProp<RootStackParamList>>();
 
-    const handleSearch = (query: string) => {
+    const navigateToHome = () => {
+        navigation.navigate('Dashboard');
+      };
+    
+      const navigateToSearch = () => {
+        navigation.navigate('Search');
+      };
+
+    const handleSearch = async (query: string) => {
         setSearchQuery(query);
-        setResults(query ? ['Result 1', 'Result 2', 'Result 3'] : []);
+
+        if (query) {
+            try {
+                const response = await fetch(`http://localhost:5000/api/stocks/search?query=${query}`);
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch results');
+                }
+
+                const data = await response.json();
+                setResults(data);
+            } catch (error) {
+                console.error(error);
+                setResults([]);
+            }
+        } else {
+            setResults([]); // Clear results if query is empty
+        }
+    };
+
+    const handleStockPress = (stock: { id: string; symbol: string; name: string }) => {
+        navigation.navigate('Stock', {
+            stockId: stock.id,
+            symbol: stock.symbol,
+            name: stock.name,
+        });
     };
 
     return (
+        <VStack className="flex-1 bg-white">
         <View style={{ flex: 1, padding: 16, backgroundColor: 'white' }}>
             <Box style={{ marginBottom: 16 }}>
                 <Input
@@ -27,15 +66,29 @@ const SearchScreen = () => {
             </Box>
             <FlatList
                 data={results}
-                keyExtractor={(item, index) => index.toString()}
+                keyExtractor={(item) => item.id}
                 renderItem={({ item }) => (
-                    <Box style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: 'gray.200' }}>
-                        <Text>{item}</Text>
-                    </Box>
+                    <Pressable onPress={() => handleStockPress(item)}>
+                        <Box style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: 'gray.200' }}>
+                            <Text style={{ fontWeight: 'bold' }}>{item.symbol}</Text>
+                            <Text>{item.name}</Text>
+                        </Box>
+                    </Pressable>
                 )}
                 ListEmptyComponent={<Text style={{ textAlign: 'center', color: 'gray.500' }}>No results found</Text>}
+                contentContainerStyle={{ paddingBottom: 16 }}
             />
+                  {/* Footer */}
+      <HStack className="border-t border-gray-300 bg-gray-100" style={{ width: '100%' }}>
+        <Button variant="ghost" onPress={navigateToHome} className="flex-1 items-center py-4">
+          <Text className="text-blue-500 text-lg font-semibold">Home</Text>
+        </Button>
+        <Button variant="ghost" onPress={navigateToSearch} className="flex-1 items-center py-4">
+          <Text className="text-blue-500 text-lg font-semibold">Search</Text>
+        </Button>
+      </HStack>
         </View>
+        </VStack>
     );
 };
 

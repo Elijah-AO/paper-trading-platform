@@ -5,5 +5,6 @@ export type RootStackParamList = {
     SignUp: undefined;
     Dashboard: undefined;
     Search: undefined;
+    Stock: { stockId: string; symbol: string; name: string };
   };
   
